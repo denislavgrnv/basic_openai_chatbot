@@ -2,29 +2,18 @@ import agent from "./agent-init.mjs";
 import { run } from '@openai/agents';
 import readLineSync from 'readline-sync';
 import colors from 'colors';
-import mongoose from 'mongoose';
 
 import User from "./Models/users.mjs";
 import Conversation from "./Models/conversations.mjs";
 import selectConversation from "./selectConversation.mjs";
-
-// 1. Database Connection Logic
-async function connectDB() {
-    try {
-        await mongoose.connect('mongodb://localhost:27017/ChatBot');
-        console.log(colors.green('Connected to MongoDB!'));
-    } catch (error) {
-        console.error(colors.red('Error connecting to MongoDB:', error));
-        process.exit(1);
-    }
-}
+import connectDB from "./baseConnect.mjs";
 
 async function startApp() {
     await connectDB();
 
     const user = await User.findOne({ firstName: "Alex" });
     if (!user) {
-        console.log(colors.red("User 'Alex' not found. Please create the user first."));
+        console.log(colors.red("User not found. Please create the user first."));
         return;
     }
 
@@ -39,11 +28,13 @@ async function main(userId, initialQuestion, conversationDoc) {
     let userQuestion = initialQuestion;
     
     let currentConvoId = conversationDoc ? conversationDoc._id : null;
-    
-    // Maintain a local array of messages for the "Short-term memory"
+    let summary = conversationDoc?.summary || "";
     let localMessages = conversationDoc 
         ? conversationDoc.messages.map(m => ({ role: m.role, content: m.content })) 
         : [];
+
+    const titleResult = await run(agent, `Based on the first prompt by the user, set title for the conversation : ${userQuestion}`);
+    const titleText = titleResult.finalOutput;
 
     while (userQuestion !== 'exit' && userQuestion !== 'quit' && userQuestion !== 'bye') {
         
@@ -53,7 +44,13 @@ async function main(userId, initialQuestion, conversationDoc) {
             .join("\n");
 
         // Combine history + the new question into one plain string
-        const combinedInput = `System: Use the following history for context.\n\n${historyString}\n\nUser: ${userQuestion}`;
+        const combinedInput = `
+            SYSTEM: Here is a summary of the past: ${summary}
+            Recent context:
+            ${historyString}
+            
+            USER: ${userQuestion}
+        `;
 
         console.log(colors.gray("(Thinking...)"));
 
@@ -64,7 +61,7 @@ async function main(userId, initialQuestion, conversationDoc) {
             if (!currentConvoId) {
                 const newConvo = await Conversation.create({
                     userId: userId,
-                    title: userQuestion.substring(0, 30) + "...",
+                    title: titleText,
                     messages: [
                         { role: "user", content: userQuestion },
                         { role: "assistant", content: aiResponse }
@@ -94,11 +91,24 @@ async function main(userId, initialQuestion, conversationDoc) {
 
             console.log(colors.blue(`ChatBot: ${aiResponse}`));
 
+            // Update the DB with the new summary
+            await Conversation.findByIdAndUpdate(currentConvoId, { $set: { summary: summary } });
+
         } catch (error) {
             console.error(colors.red("Error during AI run or DB save:"), error);
         }
 
         userQuestion = readLineSync.question('\nYou: ');
+    }
+    try {
+        const summaryPrompt = `Summarize our entire conversation so far into 2 concise sentences for your own future reference, make it clean and don/'t fall into nonsense explanations: \n${localMessages.map(m => m.content).join(" ")} and add this information to the old summary which is : ${summary}`;
+        const summaryResult = await run(agent, summaryPrompt);
+                
+        summary = summaryResult.finalOutput;
+    
+        await Conversation.findByIdAndUpdate(currentConvoId, { $set: { summary: summary } });
+    } catch (error) {
+        console.error(colors.red("Error generating summary:"), error);  
     }
     console.log(colors.magenta("Goodbye!"));
     process.exit(0);

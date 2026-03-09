@@ -11,6 +11,10 @@ const conversationSchema = new Schema({
         type: String,
         default: "New Conversation"
     },
+    summary: {
+        type: String,
+        default: "nothing yet"
+    },
     messages: [
         {
             role: { type: String, enum: ["user", "assistant"], required: true },
