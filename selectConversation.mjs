@@ -1,4 +1,9 @@
-export default function selectConversation(userId) {
+import readLineSync from 'readline-sync';
+import colors from 'colors';
+
+import Conversation from "./Models/conversations.mjs";
+
+export default async function selectConversation(userId) {
     const convos = await Conversation.find({ userId }).sort({ lastUpdated: -1 });
 
     if (convos.length === 0) return null;
