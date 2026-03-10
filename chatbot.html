@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChatBot UI</title>
+    <link rel="stylesheet" href="chatbot.css">
+</head>
+<body>
+    <div id="sidebar">
+        <button class="new-chat-btn">+ New Chat</button>
+        <div class="history-label">Recent</div>
+        <div class="history-item">How to center a div</div>
+        <div class="history-item">JavaScript API Tutorial</div>
+        <div class="history-item">Project Ideas 2026</div>
+    </div>
+
+    <main>
+        <div id="assistant-header">
+            <span>AI Assistant</span>
+        </div>
+
+        <div id="chat-messages">
+            <div class="message-wrapper">
+                <p style="color: #666;">Hello! How can I help you today?</p>
+            </div>
+        </div>
+
+        <div class="input-container">
+            <div class="chat-input-wrapper">
+                <input type="text" id="user-input" placeholder="Enter a prompt here..." />
+            </div>
+            <p style="font-size: 0.7rem; text-align: center; color: #999; margin-top: 10px;">
+                AI may display inaccurate info, so double-check its responses.
+            </p>
+        </div>
+    </main>
+</body>
+</html>
