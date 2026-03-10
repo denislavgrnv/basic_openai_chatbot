@@ -3,8 +3,8 @@ import { run } from '@openai/agents';
 import readLineSync from 'readline-sync';
 import colors from 'colors';
 
-import User from "./Models/users.mjs";
-import Conversation from "./Models/conversations.mjs";
+import User from "../Models/users.mjs";
+import Conversation from "../Models/conversations.mjs";
 import selectConversation from "./selectConversation.mjs";
 import connectDB from "./baseConnect.mjs";
 
