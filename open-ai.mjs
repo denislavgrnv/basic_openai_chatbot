@@ -33,8 +33,12 @@ async function main(userId, initialQuestion, conversationDoc) {
         ? conversationDoc.messages.map(m => ({ role: m.role, content: m.content })) 
         : [];
 
-    const titleResult = await run(agent, `Based on the first prompt by the user, set title for the conversation : ${userQuestion}`);
-    const titleText = titleResult.finalOutput;
+    let titleText = "";
+    if (!currentConvoId) {
+        const titleResult = await run(agent, `Based on the first prompt from the user, set few words title for the conversation : ${userQuestion}`);
+        titleText = titleResult.finalOutput;
+    }
+
 
     while (userQuestion !== 'exit' && userQuestion !== 'quit' && userQuestion !== 'bye') {
         
@@ -71,15 +75,18 @@ async function main(userId, initialQuestion, conversationDoc) {
                 console.log(colors.green("[New Conversation Created]"));
             } else {
                 await Conversation.findByIdAndUpdate(currentConvoId, {
-                    $push: { 
+                    $push: {
+                        
                         messages: { 
                             $each: [
                                 { role: "user", content: userQuestion },
                                 { role: "assistant", content: aiResponse }
                             ] 
-                        } 
+                        },
                     },
-                    $set: { lastUpdated: Date.now() }
+                    $set: { 
+                        lastUpdated: Date.now()
+                    }
                 });
                 console.log(colors.yellow("[History Saved]"));
             }
@@ -101,7 +108,7 @@ async function main(userId, initialQuestion, conversationDoc) {
         userQuestion = readLineSync.question('\nYou: ');
     }
     try {
-        const summaryPrompt = `Summarize our entire conversation so far into 2 concise sentences for your own future reference, make it clean and don/'t fall into nonsense explanations: \n${localMessages.map(m => m.content).join(" ")} and add this information to the old summary which is : ${summary}`;
+        const summaryPrompt = `Summarize our entire conversation so far into 2 concise sentences using the currect chat history and the last summary for your own future reference, make it clean and don/'t fall into nonsense explanations: \n${localMessages.map(m => m.content).join(" ")} and the old summary : ${summary}`;
         const summaryResult = await run(agent, summaryPrompt);
                 
         summary = summaryResult.finalOutput;
