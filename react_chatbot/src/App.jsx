@@ -1,25 +1,78 @@
-import './chatbot.css'
-import ChatHistorySideBar from './chat_history/ChatHistorySideBar';
-function App() {
+import { useState } from 'react';
+import './chatbot.css';
+import ChatHistorySideBar from './components/chat_history/ChatHistorySideBar.jsx';
+import api from '../api/requester.js'; // Import your requester
+
+export default function App() {
+    const [input, setInput] = useState("");
+    const [currentConvoId, setCurrentConvoId] = useState(null); // Track the active chat
+    const [messages, setMessages] = useState([
+        { id: 'welcome', text: "Hello! How can I help you today?", sender: "assistant" }
+    ]);
+
+    const handleSend = async () => {
+        if (!input.trim()) return;
+
+        const userText = input;
+        setInput("");
+
+        // 1. Show User Message in UI instantly
+        const userMsg = { id: Date.now(), text: userText, sender: "user" };
+        setMessages(prev => [...prev, userMsg]);
+
+        try {
+            const response = await api.post('http://localhost:5000/api/chat', {
+                userId: "69adb2ba905f4761f8ea2c44",
+                userQuestion: userText,
+                conversationId: currentConvoId
+            });
+
+            const aiMsg = {
+                id: Date.now() + 1,
+                text: response.aiResponse,
+                sender: "ai"
+            };
+
+            setMessages(prev => [...prev, aiMsg]);
+
+            if (!currentConvoId) {
+                setCurrentConvoId(response.conversationId);
+            }
+        } catch (error) {
+            console.error("Chat Error:", error);
+            setMessages(prev => [...prev, { id: 'err', text: "Sorry, I'm having trouble connecting.", sender: "assistant" }]);
+        }
+    };
 
     return (
-        <div className="app-layout"> {/* The 'Father' wrapper */}
+        <div className="app-layout">
             <ChatHistorySideBar />
-
             <main className="main-content">
                 <header className="assistant-header">
                     <span>AI Assistant</span>
                 </header>
 
                 <div className="chat-messages">
-                    <div className="message-wrapper">
-                        <p style={{ color: '#666' }}>Hello! How can I help you today?</p>
-                    </div>
+                    {messages.map((msg) => (
+                        <div key={msg.id} className={`message-row ${msg.sender}`}>
+                            <div className="message-bubble">
+                                {msg.text}
+                            </div>
+                        </div>
+                    ))}
                 </div>
 
                 <div className="input-container">
                     <div className="chat-input-wrapper">
-                        <input type="text" className="user-input" placeholder="Enter a prompt here..." />
+                        <input
+                            type="text"
+                            className="user-input"
+                            placeholder="Enter a prompt here..."
+                            value={input}
+                            onChange={(e) => setInput(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                        />
+                        <button onClick={handleSend} className="send-btn"></button>
                     </div>
                     <p className="disclaimer">
                         AI may display inaccurate info, so double-check its responses.
@@ -29,5 +82,3 @@ function App() {
         </div>
     );
 }
-
-export default App;
