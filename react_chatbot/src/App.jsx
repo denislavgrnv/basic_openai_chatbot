@@ -1,15 +1,10 @@
 import './chatbot.css'
-
+import ChatHistorySideBar from './chat_history/ChatHistorySideBar';
 function App() {
+
     return (
         <div className="app-layout"> {/* The 'Father' wrapper */}
-            <aside className="sidebar">
-                <button className="new-chat-btn">+ New Chat</button>
-                <div className="history-label">Recent</div>
-                <div className="history-item">How to center a div</div>
-                <div className="history-item">JavaScript API Tutorial</div>
-                <div className="history-item">Project Ideas 2026</div>
-            </aside>
+            <ChatHistorySideBar />
 
             <main className="main-content">
                 <header className="assistant-header">
