@@ -8,7 +8,7 @@ import Conversation from "../Models/conversations.mjs";
 import selectConversation from "./selectConversation.mjs";
 import connectDB from "../database/baseConnect.mjs";
 
-async function startApp() {
+async function startApp(userQuestion) {
     await connectDB();
 
     const user = await User.findOne({ firstName: "Alex" });
@@ -18,8 +18,6 @@ async function startApp() {
     }
 
     const selectedConvo = await selectConversation(user._id);
-    
-    let userQuestion = readLineSync.question('\nYou: ');
 
     await main(user._id, userQuestion, selectedConvo);
 }
