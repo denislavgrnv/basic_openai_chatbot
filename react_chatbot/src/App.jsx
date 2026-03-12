@@ -6,6 +6,7 @@ import api from '../api/requester.js'; // Import your requester
 export default function App() {
     const [input, setInput] = useState("");
     const [currentConvoId, setCurrentConvoId] = useState(null);
+    const [sidebarRefresh, setSidebarRefresh] = useState(0);
     const [messages, setMessages] = useState([
         { id: 'welcome', text: "Hello! How can I help you today?", sender: "assistant" }
     ]);
@@ -30,8 +31,13 @@ export default function App() {
             const aiMsg = {
                 id: Date.now() + 1,
                 text: response.aiResponse,
-                sender: "ai"
+                sender: "assistant"
             };
+
+            if (!currentConvoId) {
+                setCurrentConvoId(response.conversationId);
+                setSidebarRefresh(prev => prev + 1); // This tells the sidebar to re-fetch
+            }
 
             setMessages(prev => [...prev, aiMsg]);
 
@@ -66,7 +72,7 @@ export default function App() {
 
     return (
         <div className="app-layout">
-            <ChatHistorySideBar onSelectConversation={loadConversation} onNewChat={handleNewChat} />
+            <ChatHistorySideBar onSelectConversation={loadConversation} onNewChat={handleNewChat} refreshTrigger={sidebarRefresh} />
             <main className="main-content">
                 <header className="assistant-header">
                     <span>AI Assistant</span>
