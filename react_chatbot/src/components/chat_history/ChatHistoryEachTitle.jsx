@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { getConversations } from "../../../hooks/chats";
 
-export default function ChatHistoryEachTitle() {
+export default function ChatHistoryEachTitle({ onSelect }) {
     const [conversations, setConversations] = useState([]);
     useEffect(() => {
         const fetchConversations = async () => {
@@ -18,7 +18,7 @@ export default function ChatHistoryEachTitle() {
     return (
         <div className="history-list">
             {conversations.map((chat) => (
-                <div key={chat._id} className="history-item">
+                <div key={chat._id} className="history-item" onClick={() => onSelect(chat)}>
                     {chat.title}
                 </div>
             ))}

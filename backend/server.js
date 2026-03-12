@@ -32,6 +32,16 @@ app.get('/api/conversations/:userId', async (req, res) => {
     }
 });
 
+app.get('/api/conversations/:conversationId', async (req, res) => {
+    try {
+        const convo = await findCurrentConversation(req.params.conversationId);
+        if (!convo) return res.status(404).send("Not found");
+        res.json(convo);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.post('/api/chat', async (req, res) => {
     const { userId, userQuestion, conversationId } = req.body;
 

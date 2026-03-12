@@ -5,7 +5,7 @@ import api from '../api/requester.js'; // Import your requester
 
 export default function App() {
     const [input, setInput] = useState("");
-    const [currentConvoId, setCurrentConvoId] = useState(null); // Track the active chat
+    const [currentConvoId, setCurrentConvoId] = useState(null);
     const [messages, setMessages] = useState([
         { id: 'welcome', text: "Hello! How can I help you today?", sender: "assistant" }
     ]);
@@ -44,9 +44,29 @@ export default function App() {
         }
     };
 
+    const loadConversation = (convo) => {
+        setCurrentConvoId(convo._id);
+
+        const formattedMessages = convo.messages.map(m => ({
+            id: m._id,
+            text: m.content,
+            sender: m.role === 'assistant' ? 'ai' : 'user'
+        }));
+
+        setMessages(formattedMessages);
+    };
+
+    const handleNewChat = () => {
+        setCurrentConvoId(null);
+        setMessages([
+            { id: 'welcome', text: "Started a new chat. What's on your mind?", sender: "assistant" }
+        ]);
+        setInput("");
+    };
+
     return (
         <div className="app-layout">
-            <ChatHistorySideBar />
+            <ChatHistorySideBar onSelectConversation={loadConversation} onNewChat={handleNewChat} />
             <main className="main-content">
                 <header className="assistant-header">
                     <span>AI Assistant</span>

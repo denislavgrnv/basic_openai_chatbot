@@ -1,12 +1,12 @@
 import ChatHistoryEachTitle from "./ChatHistoryEachTitle";
-export default function ChatHistorySideBar() {
+
+export default function ChatHistorySideBar({ onSelectConversation, onNewChat }) {
     return (
         <aside className="sidebar">
-            <button className="new-chat-btn">+ New Chat</button>
-
+            <button className="new-chat-btn" onClick={onNewChat}>+ New Chat</button>
             <div className="history-label">Recent</div>
 
-            <ChatHistoryEachTitle />
+            <ChatHistoryEachTitle onSelect={onSelectConversation} />
         </aside>
     );
 }
