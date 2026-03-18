@@ -33,7 +33,7 @@ export const findConversationsByUserId = async (userId) => {
 }
 
 export const findCurrentConversation = async (conversationId) => {
-    return await Conversation.findById(conversationId);
+    return Conversation.findById(conversationId);
 }
 
 export const deleteConversation = async (conversationId) => {

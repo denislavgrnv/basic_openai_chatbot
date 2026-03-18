@@ -3,6 +3,7 @@ import TypeWriter from './TypeWritter.jsx';
 import api from '../api/requester.js';
 import './chatbot.css';
 import RegisterPage from './components/register/RegisterPage.jsx';
+import LoginPage from './components/login/LoginPage.jsx';
 import { useRef, useState, useEffect } from 'react';
 
 export default function App() {
@@ -12,14 +13,13 @@ export default function App() {
     const [input, setInput] = useState("");
     const [currentConvoId, setCurrentConvoId] = useState(null);
     const [sidebarRefresh, setSidebarRefresh] = useState(0);
-    const [showRegister, setShowRegister] = useState(false);
+    const [isLogin, setIsLogin] = useState(true);
     const [messages, setMessages] = useState([
         { id: 'welcome', text: "Hello! How can I help you today?", sender: "assistant", isNew: false }
     ]);
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef(null);
 
-    // Auto-scroll to bottom
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, isTyping]);
@@ -65,15 +65,23 @@ export default function App() {
     };
 
     const loadConversation = async (convoFromSidebar) => {
-        const id = convoFromSidebar._id;
-        if (id === currentConvoId) return;
+        const conversationId = convoFromSidebar._id;
+        if (conversationId === currentConvoId) return;
 
-        setCurrentConvoId(id);
+        setCurrentConvoId(conversationId);
         try {
-            const response = await api.get(`http://localhost:5000/api/conversations/${id}`);
-            const latestConvo = response.data;
+            console.log(conversationId);
 
-            const formattedMessages = latestConvo.messages.map(m => ({
+            const response = await api.get(`http://localhost:5000/api/conversation/${conversationId}`);
+            const messagesToMap = response?.messages || response?.data?.messages;
+
+            if (!messagesToMap) {
+                console.error("No messages array found in response!");
+                setMessages([]); // Set to empty so the UI doesn't crash
+                return;
+            }
+
+            const formattedMessages = messagesToMap.map(m => ({
                 id: m._id || Math.random(),
                 text: m.content,
                 sender: m.role === 'assistant' ? 'assistant' : 'user',
@@ -95,19 +103,41 @@ export default function App() {
     const handleAuthSuccess = (userData) => {
         localStorage.setItem('user_data', JSON.stringify(userData));
         setUser(userData);
+
+        setMessages([{ id: 'welcome', text: "Hello! How can I help you today?", sender: "assistant", isNew: false }]);
+        setCurrentConvoId(null);
+        setSidebarRefresh(prev => prev + 1);
     };
 
-    // --- AUTH GUARD ---
+    const toggleView = () => {
+        setIsLogin(!isLogin);
+    };
+
+    useEffect(() => {
+        if (!user) {
+            setMessages([{ id: 'welcome', text: "Hello! How can I help you today?", sender: "assistant", isNew: false }]);
+            setCurrentConvoId(null);
+        }
+    }, [user?._id]);
+
     if (!user) {
         return (
-            <RegisterPage
-                onRegisterSuccess={handleAuthSuccess}
-                switchToLogin={() => setShowRegister(false)}
-            />
-        )
+            <div>
+                {isLogin ? (
+                    <LoginPage
+                        onLoginSuccess={handleAuthSuccess}
+                        switchToRegister={toggleView}
+                    />
+                ) : (
+                    <RegisterPage
+                        onRegisterSuccess={handleAuthSuccess}
+                        switchToLogin={toggleView}
+                    />
+                )}
+            </div>
+        );
     }
 
-    // --- CHAT UI ---
     return (
         <div className="app-layout">
             <ChatHistorySideBar
@@ -166,6 +196,18 @@ export default function App() {
                         AI may display inaccurate info, so double-check its responses.
                     </p>
                 </div>
+                <button onClick={async () => {
+                    try {
+                        localStorage.removeItem('user_data');
+                        setUser(null);
+                        setSidebarRefresh(prev => prev + 1);
+                        setMessages([{ id: 'welcome', text: "Hello! How can I help you today?", sender: "assistant", isNew: false }]);
+                    } catch (err) {
+                        console.error("Logout failed", err);
+                    }
+                }}>
+                    Logout
+                </button>
             </main>
         </div>
     );

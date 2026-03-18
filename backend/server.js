@@ -6,7 +6,7 @@ import connectDB from './database/baseConnect.mjs';
 import {run } from '@openai/agents';
 import agent from './agent/agent-init.mjs'; 
 import { createConversation, deleteConversation, findConversationsByUserId, findCurrentConversation, updateConversation } from './controllers/chat-conversations.mjs';
-import {createUser} from './controllers/user-controller.mjs';
+import {createUser, findUserByEmailAndPassword} from './controllers/user-controller.mjs';
 const app = express();
 
 app.use(cors()); 
@@ -32,10 +32,9 @@ app.get('/api/conversations/:userId', async (req, res) => {
     }
 });
 
-app.get('/api/conversations/:conversationId', async (req, res) => {
+app.get('/api/conversation/:conversationId', async (req, res) => {
     try {
         const convo = await findCurrentConversation(req.params.conversationId);
-        if (!convo) return res.status(404).send("Not found");
         res.json(convo);
     } catch (err) {
         res.status(500).json({ error: err.message });
@@ -99,6 +98,27 @@ app.post('/api/auth/register', async (req, res) => {
     } catch (error) {
         console.error("User Creation Error:", error);
         res.status(500).json({ error: "Failed to create user" });
+    }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+    const { email, password } = req.body;
+    console.log("Login attempt for:", email);
+    try {
+        const user = await findUserByEmailAndPassword(email, password);
+        if (!user) {
+            return res.status(401).json({ error: "Invalid credentials" });
+        }
+        res.json({ 
+            user: { 
+                _id: user._id, 
+                name: user.name, 
+                email: user.email 
+            } 
+        });
+    } catch (error) {
+        console.error("User Login Error:", error);
+        res.status(500).json({ error: "Failed to login user" });
     }
 });
 
