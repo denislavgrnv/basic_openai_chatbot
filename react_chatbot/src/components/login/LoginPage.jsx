@@ -2,23 +2,22 @@ import { useState } from 'react';
 import api from '../../../api/requester.js';
 import './LoginPage.css';
 
-export default function LoginPage({ onLoginSuccess }) {
+// 1. Add switchToRegister to the props here
+export default function LoginPage({ onLoginSuccess, switchToRegister }) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
 
     const handleSubmit = async (e) => {
-        e.preventDefault(); // Prevents page reload
+        e.preventDefault();
         setError("");
 
         try {
-            // Send the text to your backend
             const response = await api.post('http://localhost:5000/api/auth/login', {
                 email: email,
                 password: password
             });
 
-            // Assuming your backend returns { user: { _id, name... }, token: "..." }
             if (response.user) {
                 onLoginSuccess(response.user);
             }
@@ -60,6 +59,18 @@ export default function LoginPage({ onLoginSuccess }) {
                     </div>
                     <button type="submit" className="auth-btn">Log In</button>
                 </form>
+
+                <div className="auth-footer" style={{ marginTop: '1.5rem', textAlign: 'center' }}>
+                    <p style={{ fontSize: '0.9rem', color: '#666' }}>
+                        Don't have an account?{' '}
+                        <span
+                            onClick={switchToRegister}
+                            style={{ color: '#007bff', cursor: 'pointer', fontWeight: 'bold' }}
+                        >
+                            Sign Up
+                        </span>
+                    </p>
+                </div>
             </div>
         </div>
     );
