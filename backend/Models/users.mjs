@@ -1,16 +1,21 @@
 import { Schema, model } from "mongoose";
 
 const userSchema = new Schema({
-    firstName: {
+    name: {
+        type: String,
+        required: true,
+        minlength: [2, "Name must be at least 2 characters!"],
+        maxlength: [100, "Name cannot exceed 100 characters!"],
+    },
+    email: {
         type: String,
         unique: true,
-        validate: [/^[a-zA-Z]+$/, "Invalid first name!"],
-        minLength: [2, "First name should be at least 2 characters long!"],
+        validate: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Invalid email!"],
     },
-    lastName: {
+    password: {
         type: String,
-        validate: [/^[a-zA-Z]+$/, "Invalid last name!"],
-        minLength: [2, "Last name should be at least 2 characters long!"],
+        required: true,
+        minlength: [6, "Password must be at least 6 characters!"],
     },
 });
 

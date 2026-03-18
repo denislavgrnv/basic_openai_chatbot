@@ -5,8 +5,8 @@ import connectDB from './database/baseConnect.mjs';
 
 import {run } from '@openai/agents';
 import agent from './agent/agent-init.mjs'; 
-import { createConversation, findConversationsByUserId, findCurrentConversation, updateConversation } from './controllers/chat-conversations.mjs';
-
+import { createConversation, deleteConversation, findConversationsByUserId, findCurrentConversation, updateConversation } from './controllers/chat-conversations.mjs';
+import {createUser} from './controllers/user-controller.mjs';
 const app = express();
 
 app.use(cors()); 
@@ -69,7 +69,8 @@ app.post('/api/chat', async (req, res) => {
             
             convo = await createConversation(userId, userQuestion, aiResponse, titleResult, firstSummary);
         } else {
-            await updateConversation(conversationId, userQuestion, aiResponse, convo.summary);
+            const summary = await run(agent, `Summarize this conversation in 1-2 sentences:}\nUser Question: ${userQuestion}\nAI Answer: ${aiResponse}, combine it with last summary: ${convo.summary}`);
+            await updateConversation(conversationId, userQuestion, aiResponse, summary.finalOutput);
         }
 
         res.json({ 
@@ -81,6 +82,40 @@ app.post('/api/chat', async (req, res) => {
     } catch (error) {
         console.error("AI Route Error:", error);
         res.status(500).json({ error: "The AI agent encountered an issue." });
+    }
+});
+app.post('/api/auth/register', async (req, res) => {
+    const { name, email, password } = req.body;
+    console.log("Register attempt for:", email);
+    try {
+        const newUser = await createUser({ name, email, password });
+        res.status(201).json({ 
+            user: { 
+                _id: newUser._id, 
+                name: newUser.name, 
+                email: newUser.email 
+            } 
+        });
+    } catch (error) {
+        console.error("User Creation Error:", error);
+        res.status(500).json({ error: "Failed to create user" });
+    }
+});
+
+app.delete('/api/conversations/:conversationId', async (req, res) => {
+    try {
+        const { conversationId } = req.params;
+
+        const deletedConversation = await deleteConversation(conversationId);
+
+        if (!deletedConversation) {
+            return res.status(404).json({ error: "Conversation not found" });
+        }
+
+        res.json({ message: "Conversation deleted successfully" });
+    } catch (error) {
+        console.error("Delete Error:", error);
+        res.status(500).json({ error: "Failed to delete conversation" });
     }
 });
 
