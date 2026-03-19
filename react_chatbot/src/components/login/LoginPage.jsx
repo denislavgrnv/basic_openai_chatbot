@@ -3,7 +3,7 @@ import api from '../../../api/requester.js';
 import './LoginPage.css';
 
 // 1. Add switchToRegister to the props here
-export default function LoginPage({ onLoginSuccess, switchToRegister }) {
+export default function LoginPage({ onLoginSuccess, switchToRegister, onGuestContinue }) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
@@ -60,16 +60,17 @@ export default function LoginPage({ onLoginSuccess, switchToRegister }) {
                     <button type="submit" className="auth-btn">Log In</button>
                 </form>
 
-                <div className="auth-footer" style={{ marginTop: '1.5rem', textAlign: 'center' }}>
-                    <p style={{ fontSize: '0.9rem', color: '#666' }}>
-                        Don't have an account?{' '}
-                        <span
-                            onClick={switchToRegister}
-                            style={{ color: '#007bff', cursor: 'pointer', fontWeight: 'bold' }}
-                        >
-                            Sign Up
-                        </span>
-                    </p>
+                <div className="auth-footer">
+                    <p>Don't have an account? <span onClick={switchToRegister}>Sign Up</span></p>
+
+                    <div className="guest-separator">or</div>
+                    <button
+                        type="button"
+                        className="guest-link-btn"
+                        onClick={onGuestContinue}
+                    >
+                        Continue as Guest
+                    </button>
                 </div>
             </div>
         </div>

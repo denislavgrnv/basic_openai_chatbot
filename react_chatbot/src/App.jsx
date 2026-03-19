@@ -10,6 +10,7 @@ export default function App() {
     const [user, setUser] = useState(() =>
         localStorage.getItem('user_data') ? JSON.parse(localStorage.getItem('user_data')) : null
     );
+    const [guestSummary, setGuestSummary] = useState("");
     const [input, setInput] = useState("");
     const [currentConvoId, setCurrentConvoId] = useState(null);
     const [sidebarRefresh, setSidebarRefresh] = useState(0);
@@ -19,6 +20,7 @@ export default function App() {
     ]);
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef(null);
+    const [showAuthModal, setShowAuthModal] = useState(!localStorage.getItem('user_data'));
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -29,34 +31,49 @@ export default function App() {
 
         const userText = input;
         setInput("");
-
         const userMsg = { id: Date.now(), text: userText, sender: "user", isNew: false };
         setMessages(prev => [...prev, userMsg]);
         setIsTyping(true);
 
         try {
-            const response = await api.post('http://localhost:5000/api/chat', {
-                userId: user._id,
-                userQuestion: userText,
-                conversationId: currentConvoId
-            });
+            // 2. GUEST LOGIC: If guest, use a different flow
+            if (user?.isGuest) {
+                // You can either call a specific guest API or a limited version of your chat
+                const response = await api.post('http://localhost:5000/api/chat/guest', {
+                    userQuestion: userText,
+                    historySummary: guestSummary
+                });
 
-            setIsTyping(false);
+                setGuestSummary(response.newSummary);
 
-            const aiMsg = {
-                id: Date.now() + 1,
-                text: response.aiResponse,
-                sender: "assistant",
-                isNew: true
+                const aiMsg = {
+                    id: Date.now() + 1,
+                    text: response.aiResponse,
+                    sender: "assistant",
+                    isNew: true
+                };
+                setMessages(prev => [...prev, aiMsg]);
+                setIsTyping(false);
+            } else {
+                // REGULAR LOGIC for logged-in users
+                const response = await api.post('http://localhost:5000/api/chat', {
+                    userId: user._id,
+                    userQuestion: userText,
+                    conversationId: currentConvoId
+                });
+                setIsTyping(false);
+                const aiMsg = {
+                    id: Date.now() + 1,
+                    text: response.aiResponse,
+                    sender: "assistant",
+                    isNew: true
+                };
+                setMessages(prev => [...prev, aiMsg]);
+                if (!currentConvoId) {
+                    setCurrentConvoId(response.conversationId);
+                }
+                setSidebarRefresh(prev => prev + 1);
             };
-
-            setMessages(prev => [...prev, aiMsg]);
-
-            if (!currentConvoId) {
-                setCurrentConvoId(response.conversationId);
-            }
-
-            setSidebarRefresh(prev => prev + 1);
         } catch (error) {
             console.error("Chat Error:", error);
             setIsTyping(false);
@@ -120,18 +137,52 @@ export default function App() {
         }
     }, [user?._id]);
 
+    const handleContinueAsGuest = () => {
+        const guestUser = { isGuest: true, name: "Guest" };
+        setUser(guestUser);
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('user_data');
+        setUser(null);
+        setCurrentConvoId(null);
+        setMessages([{ id: 'welcome', text: "Hello! How can I help you today?", sender: "assistant", isNew: false }]);
+    }
+
+    // --- AUTH & GUEST MODAL ---
+    if (showAuthModal && !user) {
+        return (
+            <div className="modal-overlay">
+                <div className="auth-choice-card">
+                    <h2>Welcome to AI Chat</h2>
+                    <p>Login to save your history or continue to try it out.</p>
+                    <div className="modal-actions">
+                        <button className="primary-btn" onClick={() => setShowAuthModal(false)}>
+                            Login / Register
+                        </button>
+                        <button className="secondary-btn" onClick={handleContinueAsGuest}>
+                            Continue as Guest
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     if (!user) {
         return (
-            <div>
+            <div className="auth-page-container">
                 {isLogin ? (
                     <LoginPage
                         onLoginSuccess={handleAuthSuccess}
                         switchToRegister={toggleView}
+                        onGuestContinue={handleContinueAsGuest} // Pass it here
                     />
                 ) : (
                     <RegisterPage
                         onRegisterSuccess={handleAuthSuccess}
                         switchToLogin={toggleView}
+                        onGuestContinue={handleContinueAsGuest} // And here
                     />
                 )}
             </div>
@@ -140,10 +191,25 @@ export default function App() {
 
     return (
         <div className="app-layout">
+            {/* TOP RIGHT AUTH ACTION */}
+            <div className="top-auth-nav">
+                {user.isGuest ? (
+                    <button className="login-link-btn" onClick={() => setUser(null)}>
+                        Sign In to save history
+                    </button>
+                ) : (
+                    <div className="user-profile-nav">
+                        <button className="logout-btn" onClick={handleLogout}>Logout</button>
+                    </div>
+                )}
+            </div>
+
             <ChatHistorySideBar
-                onSelectConversation={loadConversation}
+                // If guest, we pass an empty array or handle it inside the component
+                onSelectConversation={user.isGuest ? () => { } : loadConversation}
                 onNewChat={handleNewChat}
                 refreshTrigger={sidebarRefresh}
+                isGuest={user.isGuest} // Pass the guest status down
             />
             <main className="main-content">
                 <div className="chat-messages">
@@ -196,18 +262,6 @@ export default function App() {
                         AI may display inaccurate info, so double-check its responses.
                     </p>
                 </div>
-                <button onClick={async () => {
-                    try {
-                        localStorage.removeItem('user_data');
-                        setUser(null);
-                        setSidebarRefresh(prev => prev + 1);
-                        setMessages([{ id: 'welcome', text: "Hello! How can I help you today?", sender: "assistant", isNew: false }]);
-                    } catch (err) {
-                        console.error("Logout failed", err);
-                    }
-                }}>
-                    Logout
-                </button>
             </main>
         </div>
     );
