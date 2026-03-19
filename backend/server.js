@@ -139,6 +139,31 @@ app.delete('/api/conversations/:conversationId', async (req, res) => {
     }
 });
 
+app.post("/api/chat/guest", async (req, res) => {
+    const { userQuestion, historySummary } = req.body;
+
+    try {
+        const memoryPrompt = historySummary 
+            ? `Context of previous conversation: ${historySummary}\n\nNew User Question: ${userQuestion}`
+            : userQuestion;
+
+        const result = await run(agent, memoryPrompt);
+        const aiResponse = result.finalOutput;
+
+        const updateSummaryPrompt = `Current Summary: ${historySummary || "None"}\nNew Interaction: User said "${userQuestion}", AI said "${aiResponse}"\nCreate a new, concise summary of the whole chat so far.`;
+        
+        const summaryResult = await run(agent, updateSummaryPrompt);
+        const newSummary = summaryResult.finalOutput;
+
+        res.json({ 
+            aiResponse, 
+            newSummary
+        });
+    } catch (error) {
+        console.error("Guest AI Route Error:", error);
+        res.status(500).json({ error: "The AI agent encountered an issue." });
+    }
+});
 const PORT = 5000;
 app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
