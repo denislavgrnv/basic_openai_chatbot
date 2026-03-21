@@ -4,6 +4,7 @@ import api from '../api/requester.js';
 import './chatbot.css';
 import RegisterPage from './components/register/RegisterPage.jsx';
 import LoginPage from './components/login/LoginPage.jsx';
+import PasswordModal from './components/register/PasswordModal.jsx';
 import { useRef, useState, useEffect } from 'react';
 
 export default function App() {
@@ -21,6 +22,8 @@ export default function App() {
     const [isTyping, setIsTyping] = useState(false);
     const messagesEndRef = useRef(null);
     const [showAuthModal, setShowAuthModal] = useState(!localStorage.getItem('user_data'));
+    const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+    const [modalData, setModalData] = useState(null);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -36,15 +39,11 @@ export default function App() {
         setIsTyping(true);
 
         try {
-            // 2. GUEST LOGIC: If guest, use a different flow
             if (user?.isGuest) {
-                // You can either call a specific guest API or a limited version of your chat
                 const response = await api.post('http://localhost:5000/api/chat/guest', {
                     userQuestion: userText,
                     historySummary: guestSummary
                 });
-
-                setGuestSummary(response.newSummary);
 
                 const aiMsg = {
                     id: Date.now() + 1,
@@ -52,10 +51,28 @@ export default function App() {
                     sender: "assistant",
                     isNew: true
                 };
+
                 setMessages(prev => [...prev, aiMsg]);
                 setIsTyping(false);
+                setGuestSummary(response.newSummary);
+
+                const toolCall = response.registrationData?.generatedItems?.find(
+                    item => item.type === "tool_call_item" && item.rawItem?.name === "initiate_registration"
+                );
+
+                if (toolCall && toolCall.rawItem?.arguments) {
+                    try {
+                        const { email, "full_name": fullName } = JSON.parse(toolCall.rawItem.arguments);
+
+                        if (email && fullName && !isRegisterModalOpen) {
+                            setModalData({ fullName, email });
+                            setIsRegisterModalOpen(true);
+                        }
+                    } catch (e) {
+                        console.error("Failed to parse registration data", e);
+                    }
+                }
             } else {
-                // REGULAR LOGIC for logged-in users
                 const response = await api.post('http://localhost:5000/api/chat', {
                     userId: user._id,
                     userQuestion: userText,
@@ -78,6 +95,36 @@ export default function App() {
             console.error("Chat Error:", error);
             setIsTyping(false);
             setMessages(prev => [...prev, { id: 'err', text: "Sorry, I'm having trouble connecting.", sender: "assistant", isNew: false }]);
+        }
+    };
+
+    const handleFinishRegistration = async (password) => {
+        try {
+            const finalData = {
+                name: modalData.fullName,
+                email: modalData.email,
+                password: password
+            };
+            const response = await api.post('http://localhost:5000/api/auth/register', finalData);
+
+            const createdUser = response.newUser || response.user;
+
+            if (createdUser) {
+                handleAuthSuccess(createdUser);
+                setIsRegisterModalOpen(false);
+                setModalData(null);
+                setMessages(null);
+                setMessages([
+                    {
+                        id: 'success-msg',
+                        text: `Success! Welcome, ${createdUser.name}. Your account is ready. How can I help you?`,
+                        sender: "assistant",
+                        isNew: false
+                    },
+                ]);
+            }
+        } catch (error) {
+            alert("Registration failed: " + (error.response?.data?.message || error.message));
         }
     };
 
@@ -191,7 +238,12 @@ export default function App() {
 
     return (
         <div className="app-layout">
-            {/* TOP RIGHT AUTH ACTION */}
+            <PasswordModal
+                isOpen={isRegisterModalOpen}
+                onClose={() => setIsRegisterModalOpen(false)}
+                onSave={handleFinishRegistration}
+                suggestedEmail={modalData?.email}
+            />
             <div className="top-auth-nav">
                 {user.isGuest ? (
                     <button className="login-link-btn" onClick={() => setUser(null)}>
