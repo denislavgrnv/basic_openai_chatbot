@@ -150,15 +150,26 @@ app.post("/api/chat/guest", async (req, res) => {
         const result = await run(agent, memoryPrompt);
         const aiResponse = result.finalOutput;
 
-        const updateSummaryPrompt = `Current Summary: ${historySummary || "None"}\nNew Interaction: User said "${userQuestion}", AI said "${aiResponse}"\nCreate a new, concise summary of the whole chat so far.`;
-        
+        let registrationData =  result.state;
+
+        const toolCall = result.state?._lastProcessedResponse?.toolsUsed?.find(
+            item => item.name === 'initiate_registration'
+        );
+
+        if (toolCall) {
+            registrationData = toolCall.args; 
+        }
+
+        const updateSummaryPrompt = `Current Summary: ${historySummary || "None"}\nNew Interaction: User said "${userQuestion}", AI said "${aiResponse}"\nCreate a new, concise summary.`;
         const summaryResult = await run(agent, updateSummaryPrompt);
         const newSummary = summaryResult.finalOutput;
 
         res.json({ 
             aiResponse, 
-            newSummary
+            newSummary,
+            registrationData // This triggers the modal in React
         });
+
     } catch (error) {
         console.error("Guest AI Route Error:", error);
         res.status(500).json({ error: "The AI agent encountered an issue." });

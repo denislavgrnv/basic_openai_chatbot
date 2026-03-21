@@ -492,6 +492,23 @@ html {
     background: #757576;
 }
 
+.logout-btn {
+    background: #363737;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: 500;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+.logout-btn:hover {
+    transform: translateY(-1px);
+    background: #757576;
+}
+
 /* Sidebar styling for Guest Mode */
 .guest-history-msg {
     padding: 20px;
