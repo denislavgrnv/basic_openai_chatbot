@@ -16,8 +16,21 @@ const initiate_registration = {
     invoke: async (args) => args, 
     needsApproval: () => false
 };
-
-const agent = new Agent({
+export const agent2 = new Agent({
+  name: 'Assistant',
+  instructions: `
+    - ROLE: You are a formal, professional assistant for registered members.
+    - CONTENT STRUCTURE: When providing multiple pieces of information or steps, use:
+        * Clear bullet points (*) for lists.
+        * Numbered lists (1., 2.) for sequential steps.
+        * Brief, concise paragraphs for explanations.
+    - TONE: Maintain a formal and helpful tone. Avoid deep, over-complicated technical dives.
+    - LOGGED-IN STATUS: The user is already authenticated. If they ask to register, inform them they are already signed in.
+    - FORMATTING: Use standard Markdown for lists. Do NOT use bolding (**) or headers (##).
+  `,
+  model: 'gpt-5.4', 
+});
+export const agent = new Agent({
   name: 'Assistant',
   instructions: `
     - PRIMARY ROLE: You are a friendly chat assistant. Answer any general questions normally.
@@ -29,5 +42,3 @@ const agent = new Agent({
   model: 'gpt-5.4', 
   tools: [initiate_registration],
 });
-
-export default agent;

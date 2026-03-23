@@ -4,7 +4,8 @@ import cors from 'cors';
 import connectDB from './database/baseConnect.mjs';
 
 import {run } from '@openai/agents';
-import agent from './agent/agent-init.mjs'; 
+import {agent, agent2} from './agent/agent-init.mjs'; 
+
 import { createConversation, deleteConversation, findConversationsByUserId, findCurrentConversation, updateConversation } from './controllers/chat-conversations.mjs';
 import {createUser, findUserByEmailAndPassword} from './controllers/user-controller.mjs';
 const app = express();
@@ -59,16 +60,16 @@ app.post('/api/chat', async (req, res) => {
             USER: ${userQuestion}
         `;
 
-        const result = await run(agent, combinedInput);
+        const result = await run(agent2, combinedInput);
         const aiResponse = result.finalOutput;
 
         if (!convo) {
-            const titleResult = await run(agent, `Generate a very short title for this topic: ${userQuestion}`);
-            const firstSummary = await run(agent, `Summarize this conversation in 1-2 sentences:}\nUser Question: ${userQuestion}\nAI Answer: ${aiResponse}`);
+            const titleResult = await run(agent2, `Generate a very short title for this topic: ${userQuestion}`);
+            const firstSummary = await run(agent2, `Summarize this conversation in 1-2 sentences:}\nUser Question: ${userQuestion}\nAI Answer: ${aiResponse}`);
             
             convo = await createConversation(userId, userQuestion, aiResponse, titleResult, firstSummary);
         } else {
-            const summary = await run(agent, `Summarize this conversation in 1-2 sentences:}\nUser Question: ${userQuestion}\nAI Answer: ${aiResponse}, combine it with last summary: ${convo.summary}`);
+            const summary = await run(agent2, `Summarize this conversation in 1-2 sentences:}\nUser Question: ${userQuestion}\nAI Answer: ${aiResponse}, combine it with last summary: ${convo.summary}`);
             await updateConversation(conversationId, userQuestion, aiResponse, summary.finalOutput);
         }
 
