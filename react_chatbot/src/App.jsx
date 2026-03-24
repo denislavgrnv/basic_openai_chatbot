@@ -9,14 +9,13 @@ import { useRef, useState, useEffect } from 'react';
 
 export default function App() {
     // TODO:
+    // - Add a feature to allow users to check their account details and update their profile information (e.g., name, email, password) after registration.
     // - Add a loading state to the registration button in the modal.
-    // - If the user is a guest and triggers registration, we should ideally link their guest history to their new account after they register. This will require some backend work to associate the guest session with the new user account upon registration.
     // - Consider adding a confirmation step in the modal before finalizing registration, to ensure the user wants to proceed with creating an account.
     // - If the agent calls the registration tool but the user doesn't complete the registration, we might want to handle that case (e.g., by allowing them to trigger it again or by providing a reminder).
     // - Add error handling in the modal for cases where registration fails (e.g., email already in use) and display appropriate messages to the user.
     // - Add a feature to allow users to stop the chatbot from typing or cancel the current response generation.
     // - Add a feature to send confirmation emails upon registration and handle email verification.
-    // - Add a feature to allow users to check their account details and update their profile information (e.g., name, email, password) after registration.
     // - Implement a more robust authentication system, possibly with JWT tokens, to manage user sessions more securely.
     // - Add a feature to allow users to delete their account if they choose to.
     // - MAKE A BETTER FILE STRUCTURE! This and the CSS file are getting too big.
@@ -41,6 +40,27 @@ export default function App() {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, isTyping]);
 
+    useEffect(() => {
+        const savedUser = localStorage.getItem('user_data');
+        if (!savedUser) {
+            setUser(null);
+        } else {
+            const parsedUser = JSON.parse(savedUser);
+            if (!user) setUser(parsedUser);
+        }
+    }, []);
+
+    const handleGlobalUserUpdate = async (formData) => {
+        try {
+            const response = await api.put(`http://localhost:5000/api/users/${user._id}`, formData);
+            localStorage.setItem('user_data', JSON.stringify(response));
+
+            setUser(response);
+        } catch (err) {
+            // If the server returns 401/403, your interceptor might be logging you out here
+            console.error("Update error", err.response);
+        }
+    };
     const handleSend = async () => {
         if (!input.trim() || isTyping) return;
 
@@ -274,6 +294,8 @@ export default function App() {
                 onNewChat={handleNewChat}
                 refreshTrigger={sidebarRefresh}
                 isGuest={user.isGuest} // Pass the guest status down
+                user={user}
+                onUpdateUser={handleGlobalUserUpdate}
             />
             <main className="main-content">
                 <div className="chat-messages">
