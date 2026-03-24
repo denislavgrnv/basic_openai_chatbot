@@ -19,14 +19,51 @@ html {
     overflow: hidden;
 }
 
+/* Sidebar Layout */
 .sidebar {
-    width: 260px;
-    background-color: #171717;
-    color: #fff;
     display: flex;
     flex-direction: column;
-    padding: 15px;
-    flex-shrink: 0;
+    height: 100vh;
+    background-color: #202123;
+    width: 260px;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+/* Footer & Settings Button */
+.sidebar-footer {
+    padding: 12px 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.settings-btn {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    background: transparent;
+    border: none;
+    color: #ececf1;
+    font-size: 0.9rem;
+    font-family: inherit;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.2s ease;
+}
+
+.settings-btn:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.settings-icon {
+    font-size: 1.1rem;
+    color: #acacbe;
 }
 
 .new-chat-btn {
@@ -236,10 +273,10 @@ html {
 /* History Item Layout Adjustment */
 .history-item {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 10px 15px;
-    position: relative;
+    gap: 8px; /* Space between Edit and Delete */
+    margin-left: 10px; /* Space between title and buttons */
+    flex-shrink: 0; /* Prevents buttons from squishing if title is long */
 }
 
 .chat-title {
@@ -270,6 +307,64 @@ html {
 
 .delete-chat-btn:hover {
     color: #ff4d4d; /* Red on hover */
+}
+
+/* Edit Button Style - Mirroring Delete Button */
+.edit-chat-btn {
+    background: transparent;
+    border: none;
+    color: #666; /* Matching the delete button gray */
+    font-size: 0.9rem; /* Slightly smaller than delete to look balanced */
+    cursor: pointer;
+    opacity: 0; /* Hidden by default */
+    padding: 0 5px;
+    transition:
+        opacity 0.2s,
+        color 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+/* Show edit button when hovering the history item */
+.history-item:hover .edit-chat-btn {
+    opacity: 1;
+}
+
+/* The Input Field during Edit Mode */
+.edit-title-input {
+    flex: 1; /* Takes up the same space as .chat-title */
+    background: rgba(255, 255, 255, 0.05); /* Very subtle background */
+    border: 1px solid #4da6ff; /* Blue border to match the Edit button */
+    border-radius: 4px;
+    color: #ececf1;
+    font-size: 0.9rem;
+    padding: 4px 8px;
+    margin: -4px 0; /* Offsets padding to keep row height consistent */
+    outline: none;
+    width: 100%;
+    font-family: inherit;
+    transition: box-shadow 0.2s ease;
+}
+
+/* Subtle glow when typing */
+.edit-title-input:focus {
+    box-shadow: 0 0 0 2px rgba(77, 166, 255, 0.3);
+}
+
+/* Ensure the action buttons stay visible while editing */
+.history-item.is-editing .edit-chat-btn {
+    opacity: 1;
+    color: #4da6ff;
+}
+
+/* Optional: Style for the container when in edit mode */
+.history-item.is-editing {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* Blue or White on hover to distinguish from the Red delete button */
+.edit-chat-btn:hover {
+    color: #4da6ff; /* Light blue on hover */
 }
 
 .message-row.ai {
