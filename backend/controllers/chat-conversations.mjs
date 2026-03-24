@@ -39,3 +39,7 @@ export const findCurrentConversation = async (conversationId) => {
 export const deleteConversation = async (conversationId) => {
     return await Conversation.findByIdAndDelete(conversationId);
 }
+
+export const findByIdAndUpdate = async (conversationId, newData) => {
+    return await Conversation.findByIdAndUpdate(conversationId, newData);
+}
