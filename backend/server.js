@@ -4,9 +4,10 @@ import cors from 'cors';
 import connectDB from './database/baseConnect.mjs';
 
 import {run } from '@openai/agents';
-import agent from './agent/agent-init.mjs'; 
-import { createConversation, deleteConversation, findConversationsByUserId, findCurrentConversation, updateConversation } from './controllers/chat-conversations.mjs';
-import {createUser, findUserByEmailAndPassword} from './controllers/user-controller.mjs';
+import {agent, agent2} from './agent/agent-init.mjs'; 
+
+import { createConversation, deleteConversation, findByIdAndUpdate, findConversationsByUserId, findCurrentConversation, updateConversation } from './controllers/chat-conversations.mjs';
+import {createUser, findUserByEmailAndPassword, findUserById} from './controllers/user-controller.mjs';
 const app = express();
 
 app.use(cors()); 
@@ -59,16 +60,16 @@ app.post('/api/chat', async (req, res) => {
             USER: ${userQuestion}
         `;
 
-        const result = await run(agent, combinedInput);
+        const result = await run(agent2, combinedInput);
         const aiResponse = result.finalOutput;
 
         if (!convo) {
-            const titleResult = await run(agent, `Generate a very short title for this topic: ${userQuestion}`);
-            const firstSummary = await run(agent, `Summarize this conversation in 1-2 sentences:}\nUser Question: ${userQuestion}\nAI Answer: ${aiResponse}`);
+            const titleResult = await run(agent2, `Generate a very short title for this topic: ${userQuestion}`);
+            const firstSummary = await run(agent2, `Summarize this conversation in 1-2 sentences:}\nUser Question: ${userQuestion}\nAI Answer: ${aiResponse}`);
             
             convo = await createConversation(userId, userQuestion, aiResponse, titleResult, firstSummary);
         } else {
-            const summary = await run(agent, `Summarize this conversation in 1-2 sentences:}\nUser Question: ${userQuestion}\nAI Answer: ${aiResponse}, combine it with last summary: ${convo.summary}`);
+            const summary = await run(agent2, `Summarize this conversation in 1-2 sentences:}\nUser Question: ${userQuestion}\nAI Answer: ${aiResponse}, combine it with last summary: ${convo.summary}`);
             await updateConversation(conversationId, userQuestion, aiResponse, summary.finalOutput);
         }
 
@@ -139,7 +140,7 @@ app.delete('/api/conversations/:conversationId', async (req, res) => {
     }
 });
 
-app.post("/api/chat/guest", async (req, res) => {
+app.put("/api/chat/guest", async (req, res) => {
     const { userQuestion, historySummary } = req.body;
 
     try {
@@ -173,6 +174,76 @@ app.post("/api/chat/guest", async (req, res) => {
     } catch (error) {
         console.error("Guest AI Route Error:", error);
         res.status(500).json({ error: "The AI agent encountered an issue." });
+    }
+});
+
+app.put("/api/conversation/:conversationId", async (req, res) => {
+    const { conversationId } = req.params;
+    const { title } = req.body;
+
+    // Validation: Ensure title is not empty
+    if (!title || title.trim() === "") {
+        return res.status(400).json({ error: "Title is required" });
+    }
+
+    try {
+        const updatedConversation = await findByIdAndUpdate(
+            conversationId,
+            { title: title.trim() },
+            { new: true } 
+        );
+
+        if (!updatedConversation) {
+            return res.status(404).json({ error: "Conversation not found" });
+        }
+
+        res.json(updatedConversation);
+
+    } catch (error) {
+        console.error("Rename Error:", error);
+        res.status(500).json({ error: "Server error while renaming conversation" });
+    }
+});
+
+app.put("/api/users/:id", async (req, res) => {
+    const { id } = req.params;
+    const { name, email } = req.body;
+
+    try {
+        const user = await findUserById(id);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // const isMatch = await bcrypt.compare(currentPassword, user.password);
+        // if (!isMatch) {
+        //     return res.status(401).json({ message: "Incorrect current password" });
+        // }
+
+        // 3. Update the Name
+        if (name) user.name = name;
+
+        // 4. Update Password (only if a new one was provided)
+        // if (newPassword && newPassword.trim() !== "") {
+        //     const salt = await bcrypt.genSalt(10);
+        //     user.password = await bcrypt.hash(newPassword, salt);
+        // }
+        if (email) user.email = email;
+
+        await user.save();
+
+        const userResponse = {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            isGuest: false
+        };
+
+        res.json(userResponse);
+
+    } catch (error) {
+        console.error("Update User Error:", error);
+        res.status(500).json({ message: "Server error during update" });
     }
 });
 const PORT = 5000;
